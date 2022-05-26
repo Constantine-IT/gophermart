@@ -5,6 +5,12 @@
 *.so
 *.dylib
 
+# DS_Store - no needed to check
+*.DS_Store
+.DS_Store
+.DSStore
+.DS*
+
 # Test binary, built with `go test -c`
 *.test
 
