@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/theplant/luhn"
+
 	"github.com/Constantine-IT/gophermart/cmd/gophermart/internal/storage"
 )
 
@@ -30,9 +32,9 @@ func (app *Application) PostUserOrderHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	// конвертируем в целочисленный номер заказа
-	_, err = strconv.Atoi(string(order))
+	orderNum, err := strconv.Atoi(string(order))
 	//	проводим проверку номера заказа через алгоритм Луна
-	if err != nil || !checkLuhn(string(order)) { //	если номер заказа некорректный - отвечаем со статусом 422
+	if err != nil || !luhn.Valid(orderNum) { //	если номер заказа некорректный - отвечаем со статусом 422
 		http.Error(w, "wrong order number format", http.StatusUnprocessableEntity)
 		return
 	}
