@@ -13,8 +13,9 @@ func NewDatasource(DatabaseDSN string) (strg Datasource, err error) {
 
 	var d Database
 
-	if DatabaseDSN == "" { //	если не задана переменная среды DATABASE_DSN, то работаем с БД - sqllite3
-		d.DB, err = sql.Open("sqlite3", "sqllite.db")
+	//	если не задана переменная среды DATABASE_DSN, то работаем с БД - sqllite3
+	if DatabaseDSN == "" { //	режим - "in memory" - всё в оперативке, на диске файлов НЕ создается
+		d.DB, err = sql.Open("sqlite3", ":memory:") //	при перезагрузке всё содержимое БД теряется
 		if err != nil {
 			return nil, err
 		}

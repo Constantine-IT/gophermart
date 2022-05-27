@@ -291,6 +291,17 @@ func (d *Database) Close() {
 //	UpdateOrdersStatus - метод обновления статусов заказов и начисленных баллов
 //	при сверке с внешним сервисом рассчёта бонусных баллов
 func (d *Database) UpdateOrdersStatus(AccrualAddress string) error {
+
+	if AccrualAddress == "" { //	если база данных не задана, то включаем тестовый режим с виртуальной базой,
+		//	в этом режиме все заказы принимаются безусловно, с переводом их в статус PROCESSED, с начислением 100 баллов
+		//	дату загрузки заказа установим в "2020-12-09T16:09:57+03:00" - просто для определенности в тестах
+		tx, _ := d.DB.Begin()
+		stmtInsert, _ := tx.Prepare(`update "orders" set "status" = 'PROCESSED', "accrual" = 100, "uploaded_at" = '2020-12-09T16:09:57+03:00'`)
+		stmtInsert.Exec()
+		return tx.Commit() //	фиксируем транзакцию, и результат фиксации возвращаем в вызывающую функцию
+	}
+
+	//	если режим НЕ тестовый, то запускаем синхронизацию статусов и начислений с внешним сервисом
 	var orderNum string
 	orders := make([]Order, 0)
 
@@ -372,8 +383,6 @@ func (d *Database) UpdateOrdersStatus(AccrualAddress string) error {
 				orders[i].Status = ordersUpdated.Status
 				orders[i].Accrual = ordersUpdated.Accrual
 			}
-		} else {
-			continue //	если произошла неизвестная ошибка - продолжаем цикл в новой итерации
 		}
 	}
 
@@ -397,7 +406,6 @@ func (d *Database) UpdateOrdersStatus(AccrualAddress string) error {
 		//	 запускаем обновление для каждого элемента списка на исполнение
 		if _, err := stmtInsert.Exec(orders[i].Status, orders[i].Accrual, orders[i].Number); err != nil {
 			log.Println(err.Error()) //	если при вставке произошла ошибка, то заносим её в журнал
-			continue                 //	 и продолжаем выполнение вставок далее по списку orders
 		}
 	}
 	//	фиксируем транзакцию, и результат фиксации возвращаем в вызывающую функцию

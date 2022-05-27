@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-//	Config - структура хранения конфигурации нашего ссервера
+//	Config - структура хранения конфигурации нашего сервера
 type Config struct {
 	ServerAddress  string      //	адрес запуска сервера
 	DatabaseDSN    string      //	адрес подключения к БД (PostgreSQL)
@@ -90,7 +90,7 @@ func newConfig() (cfg Config) {
 	}
 
 	//	выводим в лог конфигурацию сервера
-	log.Println("SERVER gophermart STARTED with configuration:\n   RUN_ADDRESS: ", cfg.ServerAddress, "\n   DATABASE_DSN: ", cfg.DatabaseDSN, "\n   ACCRUAL_SYSTEM_ADDRESS: ", cfg.AccrualAddress)
+	log.Println("SERVER Gophermart STARTED with configuration:\n   RUN_ADDRESS: ", cfg.ServerAddress, "\n   DATABASE_DSN: ", cfg.DatabaseDSN, "\n   ACCRUAL_SYSTEM_ADDRESS: ", cfg.AccrualAddress)
 
 	return cfg
 }
