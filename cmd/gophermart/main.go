@@ -1,11 +1,9 @@
 package main
 
 import (
-	"net/http"
-	"time"
-
 	"github.com/Constantine-IT/gophermart/cmd/gophermart/internal/handlers"
 	"github.com/Constantine-IT/gophermart/cmd/gophermart/internal/storage"
+	"net/http"
 )
 
 func main() {
@@ -20,23 +18,14 @@ func main() {
 
 	//	инициализируем контекст нашего приложения
 	app := &handlers.Application{
-		ErrorLog:   cfg.ErrorLog, //	журнал ошибок
-		InfoLog:    cfg.InfoLog,  //	журнал информационных сообщений
-		Datasource: datasource,   //	источник данных для сервера
+		ErrorLog:       cfg.ErrorLog,       //	журнал ошибок
+		InfoLog:        cfg.InfoLog,        //	журнал информационных сообщений
+		Datasource:     datasource,         //	источник данных для сервера
+		AccrualAddress: cfg.AccrualAddress, //	адрес сервиса расчёта бонусных баллов
 	}
 
-	//	запускаем процесс процесс синхронизации информации о заказах с внешней системой рассчёта баллов
-	go func() {
-		syncTicker := time.NewTicker(10 * time.Second) //	тикер для выдачи сигналов на синхронизацию
-		defer syncTicker.Stop()
-		for {
-			<-syncTicker.C
-			err := app.Datasource.UpdateOrdersStatus(cfg.AccrualAddress)
-			if err != nil {
-				cfg.ErrorLog.Println(err.Error())
-			}
-		}
-	}()
+	//	запускаем процесс синхронизации информации о заказах с внешней системой расчёта баллов
+	go Synchronizer(app)
 
 	//	при остановке сервера закроем все источники данных
 	defer app.Datasource.Close()

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 
 	_ "github.com/jackc/pgx/stdlib"
@@ -315,7 +316,7 @@ func (d *Database) UpdateOrdersStatus(AccrualAddress string) error {
 			return err
 		}
 
-		//	до синхронизации переводим все новые закакзы в статус PROCESSING, с суммой начсиленных баллов = 0
+		//	до синхронизации переводим все новые заказы в статус PROCESSING, с суммой начисленных баллов = 0
 		//	и формируем из них список orders
 		orders = append(orders, Order{Number: orderNum, Accrual: 0, Status: "PROCESSING"})
 	}
@@ -334,35 +335,54 @@ func (d *Database) UpdateOrdersStatus(AccrualAddress string) error {
 	//	создаём экземпляр этой структуры
 	ordersUpdated := ordersSync{}
 
-	//	создаём клиент HTTP для запросов стутаса заказа в систему начисления баллов
+	//	создаём клиент HTTP для запросов о статусе заказа в систему начисления баллов
 	client := resty.New()
 
 	//	опрашиваем статус всех заказов из списка orders для получения их текущего статуса
 	for i := range orders {
-		//	для запросов в систему начисления баллов используется хендлер:
-		//	GET /api/orders/{number} — получение информации о расчёте начислений баллов лояльности.
+		//	для запросов в систему начисления баллов используется запрос:
+		//	GET /api/orders/{number} — получение информации о расчёте начислений баллов лояльности
 		resp, err := client.R().Get(AccrualAddress + "/api/orders/" + orders[i].Number)
 		if err != nil {
-			log.Println(err.Error())
-			return nil
-		}
-		body := resp.Body()
-
-		//	парсим JSON и записываем результат в ordersUpdated
-		err = json.Unmarshal(body, &ordersUpdated)
-		//	проверяем успешно ли парсится JSON
-		if err != nil {
-			log.Println(err.Error())
 			return err
 		}
-		//	нас инетересуют только заказы перешедшие в финальные статусы - PROCESSED и INVALID
-		//	меняем в списке orders для них статус и сумму начислений - на актуальные значения
-		if ordersUpdated.Status == "PROCESSED" || ordersUpdated.Status == "INVALID" {
-			orders[i].Status = ordersUpdated.Status
-			orders[i].Accrual = ordersUpdated.Accrual
+
+		status := resp.StatusCode() //	считываем код статуса ответа
+
+		for status == http.StatusTooManyRequests { //	если пришел ответ со статусом 429 - TooManyRequests
+			log.Println("response status - TooManyRequests for sync service")
+			time.Sleep(5 * time.Second) //	если превышен лимит количества запросов в минуту, делаем паузу
+			//	и повторяем запрос с теми же параметрами
+			resp, err := client.R().Get(AccrualAddress + "/api/orders/" + orders[i].Number)
+			if err != nil {
+				return err
+			}
+			status = resp.StatusCode() //	считываем код статуса ответа
+		}
+
+		if status == http.StatusOK { //	если пришел ответ со статусом 200 - ОК
+
+			body := resp.Body() //	считываем тело ответа
+			//	парсим JSON и записываем результат в ordersUpdated
+			errParsing := json.Unmarshal(body, &ordersUpdated)
+			//	проверяем успешно ли парсится JSON
+			if errParsing != nil {
+				log.Println(errParsing.Error()) // запишем в лог сообщение об ошибке
+				continue                        //	и продолжаем цикл в новой итерации
+			}
+			//	нас интересуют только заказы перешедшие в финальные статусы - PROCESSED и INVALID
+			//	меняем в списке orders для них статус и сумму начислений - на актуальные значения
+			if ordersUpdated.Status == "PROCESSED" || ordersUpdated.Status == "INVALID" {
+				orders[i].Status = ordersUpdated.Status
+				orders[i].Accrual = ordersUpdated.Accrual
+			}
+		} else {
+			continue //	если произошла неизвестная ошибка - продолжаем цикл в новой итерации
 		}
 	}
 
+	//	теперь в списке orders лежит обновленная информация по заказам на начисление баллов
+	//	заносим эту информацию в нашу базу
 	//	начинаем транзакцию
 	tx, err := d.DB.Begin()
 	if err != nil {
@@ -377,14 +397,13 @@ func (d *Database) UpdateOrdersStatus(AccrualAddress string) error {
 	}
 	defer stmtInsert.Close()
 
-	//	теперь в слайсе orders лежит обновленная информация по заказам на начисление баллов
-	//	заносим эту информацию в нашу базу
 	for i := range orders {
-		//	 запускаем SQL-statement на исполнение
+		//	 запускаем обновление для каждого элемента списка на исполнение
 		if _, err := stmtInsert.Exec(orders[i].Status, orders[i].Accrual, orders[i].Number); err != nil {
-			return err
+			log.Println(err.Error()) //	если при вставке произошла ошибка, то заносим её в журнал
+			continue                 //	 и продолжаем выполнение вставок далее по списку orders
 		}
 	}
-	//	при успешном выполнении обновления в базе - фиксируем транзакцию и возвращаем идентификатор сессии
+	//	фиксируем транзакцию, и результат фиксации возвращаем в вызывающую функцию
 	return tx.Commit()
 }

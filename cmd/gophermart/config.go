@@ -2,10 +2,12 @@ package main
 
 import (
 	"flag"
+	h "github.com/Constantine-IT/gophermart/cmd/gophermart/internal/handlers"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 type Config struct {
@@ -76,4 +78,17 @@ func newConfig() (cfg Config) {
 	log.Println("SERVER gophermart STARTED with configuration:\n   RUN_ADDRESS: ", cfg.ServerAddress, "\n   DATABASE_DSN: ", cfg.DatabaseDSN, "\n   ACCRUAL_SYSTEM_ADDRESS: ", cfg.AccrualAddress)
 
 	return cfg
+}
+
+//	 Syncer - функция синхронизации информации о заказах с внешней системой расчёта баллов
+func Synchronizer(app *h.Application) {
+	syncTicker := time.NewTicker(10 * time.Second) //	тикер для выдачи сигналов на синхронизацию
+	defer syncTicker.Stop()
+	for { //	вызываем обновление статусов для заказов, находящихся НЕ в финальных статусах
+		err := app.Datasource.UpdateOrdersStatus(app.AccrualAddress)
+		if err != nil {
+			app.ErrorLog.Println(err.Error())
+		}
+		<-syncTicker.C //	повторяем обновление статусов на каждое срабатывание тикера
+	}
 }
