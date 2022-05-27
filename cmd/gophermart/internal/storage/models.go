@@ -34,7 +34,7 @@ type Datasource interface {
 	GetWithdrawals(userID string) ([]Withdraw, error)
 	OrderInsert(order string, userID string) error
 	WithdrawRequest(order string, sum float32, userID string) error
-	Close() error
+	Close()
 	UpdateOrdersStatus(AccrualAddress string) error
 }
 

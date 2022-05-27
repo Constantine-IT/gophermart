@@ -25,14 +25,15 @@ func main() {
 	}
 
 	//	запускаем процесс синхронизации информации о заказах с внешней системой расчёта баллов
-	go Synchronizer(app)
+	go syncer(app)
+
+	//	запускаем процесс слежение за сигналами на останов сервера
+	go termSignal()
 
 	//	при остановке сервера закроем все источники данных
 	defer app.Datasource.Close()
 
-	//	запуск сервера
-	cfg.InfoLog.Printf("Server starts at address: %s", cfg.ServerAddress)
-
+	//	запуск сервер
 	srv := &http.Server{
 		Addr:     cfg.ServerAddress,
 		ErrorLog: cfg.ErrorLog,

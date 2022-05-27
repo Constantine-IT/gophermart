@@ -282,14 +282,10 @@ func (d *Database) WithdrawRequest(order string, sum float32, sessionID string) 
 }
 
 //	Close - метод, закрывающий connect к базе данных
-func (d *Database) Close() error {
+func (d *Database) Close() {
 	//	при остановке сервера connect к базе данных
-	err := d.DB.Close()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	d.DB.Close()
+	time.Sleep(3 * time.Second)
 }
 
 //	UpdateOrdersStatus - метод обновления статусов заказов и начисленных баллов
