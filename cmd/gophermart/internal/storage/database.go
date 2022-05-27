@@ -334,9 +334,12 @@ func (d *Database) UpdateOrdersStatus(AccrualAddress string) error {
 
 	//	если заказы нашлись, то синхронизуем их статусы и начисления с сервером начисления бонусных баллов
 	err = syncStatusWithBonusServer(orders, AccrualAddress)
+	if err != nil {
+		return err
+	}
 
 	//	теперь в списке orders лежит обновленная информация по заказам на начисление баллов - обновим нашу базу
-	tx, err := d.DB.Begin()
+	tx, err := d.DB.Begin() //	начинаем транзакцию
 	if err != nil {
 		return err
 	}
