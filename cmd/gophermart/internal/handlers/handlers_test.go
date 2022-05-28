@@ -93,7 +93,7 @@ func TestHandlersResponse(t *testing.T) {
 			want: want{
 				statusCode:  http.StatusOK,
 				contentType: "application/json",
-				body:        `[{"accrual":100, "number":"2834832929383747", "status":"PROCESSED", "uploaded_at":"2020-12-09T16:09:57+03:00"}]`,
+				body:        `[{"accrual":100, "number":"2834832929383747", "status":"PROCESSED", "uploaded_at":"2022-01-01T00:00:00+03:00"}]`,
 			},
 		},
 	}
