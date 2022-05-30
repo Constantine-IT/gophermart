@@ -20,6 +20,7 @@ func (app *Application) GetUserOrdersHandler(w http.ResponseWriter, r *http.Requ
 
 	//	производим запрос списка заказов для начисления баллов, сформированного данным пользователем
 	orders, err := app.Datasource.GetOrders(sessionID.Value)
+
 	if errors.Is(err, storage.ErrNoDataToAnswer) { //		если список заказов пуст
 		http.Error(w, err.Error(), http.StatusNoContent) // отвечаем со статусом 204
 		return
@@ -31,6 +32,7 @@ func (app *Application) GetUserOrdersHandler(w http.ResponseWriter, r *http.Requ
 
 	//	кодируем информацию в JSON
 	body, err := json.Marshal(orders)
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		app.ErrorLog.Println(err.Error())

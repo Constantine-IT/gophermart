@@ -19,7 +19,6 @@ type User struct {
 
 //	UserRegistrationHandler - обработчик регистрации нового пользователя
 //	в случае успеха выдаёт пользователю cookie для дальнейшей авторизованной работы в системе
-
 func (app *Application) UserRegistrationHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
@@ -33,21 +32,20 @@ func (app *Application) UserRegistrationHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	//	создаём экземпляр структуры для заполнения из JSON
-	jsonUser := User{}
+	jsonUser := User{} //	создаём экземпляр структуры для заполнения из JSON
 
 	//	парсим JSON из тела запроса и записываем результат в экземпляр структуры User
 	err = json.Unmarshal(body, &jsonUser)
-	//	проверяем успешно ли парсится JSON
-	if err != nil {
+
+	if err != nil { //	проверяем успешно ли парсится JSON
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		app.ErrorLog.Println("JSON body parsing error:", err.Error())
 		return
 	}
 
 	//	создаём нового пользователя
-
 	sessionID, err := app.Datasource.UserRegister(jsonUser.UserID, jsonUser.Password)
+
 	if errors.Is(err, storage.ErrUserAlreadyExist) { //	если такой пользователь уже существует
 		http.Error(w, "user with same login already exist", http.StatusConflict)
 		return
@@ -58,11 +56,11 @@ func (app *Application) UserRegistrationHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	//	при успешном создании нового пользователя
-	//	изготавливаем cookie "sessionid", со сроком жизни - 1 день
+	//	при успешном создании нового пользователя, изготавливаем cookie "sessionid", со сроком жизни - 1 день
 	cookie := &http.Cookie{
 		Name: "sessionid", Value: sessionID, Expires: time.Now().AddDate(0, 0, 1),
 	}
+
 	//	вставляем cookie в response
 	http.SetCookie(w, cookie)
 

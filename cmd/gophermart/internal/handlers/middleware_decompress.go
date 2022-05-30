@@ -20,7 +20,6 @@ func (app *Application) DecompressGZIP(next http.Handler) http.Handler {
 			defer gz.Close()
 		}
 
-		//	передаём управление следующему хендлеру
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(w, r) //	передаём управление следующему хендлеру
 	})
 }

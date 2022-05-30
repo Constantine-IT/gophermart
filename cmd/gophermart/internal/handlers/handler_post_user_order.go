@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/theplant/luhn"
+	"github.com/theplant/luhn" //	алгоритм Луна для проверки корректности номера
 
 	"github.com/Constantine-IT/gophermart/cmd/gophermart/internal/storage"
 )
@@ -22,17 +22,15 @@ func (app *Application) PostUserOrderHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	//	считываем номер заказа из тела запроса
-	order, err := io.ReadAll(r.Body)
-	//	проверяем на ошибки чтения
+	order, err := io.ReadAll(r.Body) //	считываем номер заказа из тела запроса
+
 	if err != nil { // при любых ошибках получения данных из запроса - отвечаем со статусом 400
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		app.ErrorLog.Println(err.Error())
 		return
 	}
 
-	// конвертируем в целочисленный номер заказа
-	orderNum, err := strconv.Atoi(string(order))
+	orderNum, err := strconv.Atoi(string(order)) // конвертируем в целочисленный номер заказа
 	//	проводим проверку номера заказа через алгоритм Луна
 	if err != nil || !luhn.Valid(orderNum) { //	если номер заказа некорректный - отвечаем со статусом 422
 		http.Error(w, "wrong order number format", http.StatusUnprocessableEntity)
@@ -41,6 +39,7 @@ func (app *Application) PostUserOrderHandler(w http.ResponseWriter, r *http.Requ
 
 	//	производим вставку нового номера заказа в базу для начисления баллов
 	err = app.Datasource.OrderInsert(string(order), sessionID.Value)
+
 	if errors.Is(err, storage.ErrOrderExistToAccount) { //	если такой заказ уже зарегистрирован ТЕКУЩИМ пользователем
 		http.Error(w, err.Error(), http.StatusOK) // отвечаем со статусом 200
 		return

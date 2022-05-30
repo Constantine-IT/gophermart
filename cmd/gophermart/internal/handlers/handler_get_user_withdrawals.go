@@ -20,6 +20,7 @@ func (app *Application) GetUserWithdrawalsHandler(w http.ResponseWriter, r *http
 
 	//	производим запрос списка заявок на списание баллов, сформированного данным пользователем
 	withdrawals, err := app.Datasource.GetWithdrawals(sessionID.Value)
+
 	if errors.Is(err, storage.ErrNoDataToAnswer) { //		если список заявок пуст
 		http.Error(w, err.Error(), http.StatusNoContent) // отвечаем со статусом 204
 		return
@@ -29,8 +30,8 @@ func (app *Application) GetUserWithdrawalsHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	//	кодируем информацию в JSON
-	body, err := json.Marshal(withdrawals)
+	body, err := json.Marshal(withdrawals) //	кодируем информацию в JSON
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		app.ErrorLog.Println(err.Error())

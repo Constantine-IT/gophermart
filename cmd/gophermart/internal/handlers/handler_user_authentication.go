@@ -11,7 +11,6 @@ import (
 
 //	UserAuthenticationHandler - обработчик авторизации пользователя в системе
 //	в случае успеха выдаёт пользователю cookie для дальнейшей авторизованной работы в системе
-
 func (app *Application) UserAuthenticationHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
@@ -25,13 +24,12 @@ func (app *Application) UserAuthenticationHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	//	создаём экземпляр структуры для заполнения из JSON
-	jsonUser := User{}
+	jsonUser := User{} //	создаём экземпляр структуры для заполнения из JSON
 
 	//	парсим JSON из тела запроса и записываем результат в экземпляр структуры User
 	err = json.Unmarshal(body, &jsonUser)
-	//	проверяем успешно ли парсится JSON
-	if err != nil {
+
+	if err != nil { //	проверяем успешно ли парсится JSON
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		app.ErrorLog.Println("JSON body parsing error:", err.Error())
 		return
@@ -49,8 +47,7 @@ func (app *Application) UserAuthenticationHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	//	при успешной авторизации пользователя
-	//	изготавливаем cookie "sessionid", со сроком жизни - 1 день
+	//	при успешной авторизации пользователя, изготавливаем cookie "sessionid", со сроком жизни - 1 день
 	cookie := &http.Cookie{
 		Name: "sessionid", Value: sessionID, Expires: time.Now().AddDate(0, 0, 1),
 	}

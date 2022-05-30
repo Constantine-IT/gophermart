@@ -77,7 +77,7 @@ func (d *Database) UpdateOrdersStatus(AccrualAddress string) error {
 func syncStatusWithBonusServer(orders []Order, AccrualAddress string) error {
 
 	//	ЭТО ЗАГЛУШКА ДЛЯ ТЕСТОВЫХ НУЖД
-	if AccrualAddress == "" { //	если сервер начисления баллов не задана, то включаем тестовый режим,
+	if AccrualAddress == "" { //	если сервер начисления баллов не задан, то включаем тестовый режим,
 		//	в этом режиме все заказы принимаются безусловно, с переводом их в статус PROCESSED, с начислением 100 баллов
 		//	дату загрузки заказа установим в "2022-01-01T00:00:00+03:00" - просто для определенности в тестах
 		for i := range orders {
@@ -125,11 +125,11 @@ func syncStatusWithBonusServer(orders []Order, AccrualAddress string) error {
 		if status == http.StatusOK { //	если пришел ответ со статусом 200 - ОК
 
 			body := resp.Body() //	считываем тело ответа
-			//	парсим JSON и записываем результат в ordersUpdated
-			errParsing := json.Unmarshal(body, &ordersUpdated)
-			//	проверяем успешно ли парсится JSON
-			if errParsing != nil {
-				log.Println(errParsing.Error()) // запишем в лог сообщение об ошибке
+
+			errParsing := json.Unmarshal(body, &ordersUpdated) //	парсим JSON и записываем результат в ordersUpdated
+
+			if errParsing != nil { //				проверяем успешно ли парсится JSON
+				log.Println(errParsing.Error()) //	запишем в лог сообщение об ошибке
 				continue                        //	и продолжаем цикл в новой итерации
 			}
 			//	нас интересуют только заказы перешедшие в финальные статусы - PROCESSED и INVALID

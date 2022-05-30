@@ -20,7 +20,7 @@ func main() {
 	app := &handlers.Application{
 		ErrorLog:       cfg.ErrorLog,       //	журнал ошибок
 		InfoLog:        cfg.InfoLog,        //	журнал информационных сообщений
-		Datasource:     datasource,         //	источник данных для сервера
+		Datasource:     datasource,         //	источник данных для хранения информации о заказах
 		AccrualAddress: cfg.AccrualAddress, //	адрес сервиса расчёта бонусных баллов
 	}
 
@@ -33,7 +33,7 @@ func main() {
 	//	при остановке сервера закроем все источники данных
 	defer app.Datasource.Close()
 
-	//	запуск сервер
+	//	запуск сервера
 	srv := &http.Server{
 		Addr:     cfg.ServerAddress,
 		ErrorLog: cfg.ErrorLog,

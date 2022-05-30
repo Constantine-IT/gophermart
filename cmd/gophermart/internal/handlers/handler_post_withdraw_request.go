@@ -21,9 +21,8 @@ func (app *Application) PostWithdrawRequestHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
-	//	считываем информации о заявке из тела запроса
-	body, err := io.ReadAll(r.Body)
-	//	проверяем на ошибки чтения
+	body, err := io.ReadAll(r.Body) //	считываем информации о заявке из тела запроса
+
 	if err != nil { // при любых ошибках получения данных из запроса - отвечаем со статусом 400
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		app.ErrorLog.Println(err.Error())
@@ -40,15 +39,16 @@ func (app *Application) PostWithdrawRequestHandler(w http.ResponseWriter, r *htt
 
 	//	парсим JSON и записываем результат в withdrawIn
 	err = json.Unmarshal(body, &withdrawIn)
-	//	проверяем успешно ли парсится JSON
-	if err != nil {
+
+	if err != nil { //	проверяем успешно ли парсится JSON
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		app.ErrorLog.Println("JSON body parsing error:", err.Error())
 		return
 	}
 
-	// конвертируем в целочисленный номер заказа
+	// проверяем, конвертируется ли считанный номер заказа в целочисленное значение
 	_, err = strconv.ParseInt(withdrawIn.Order, 10, 64)
+
 	if err != nil { //	если номер заказа не является набором цифр - отвечаем со статусом 422
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		app.ErrorLog.Println(err.Error())
@@ -57,6 +57,7 @@ func (app *Application) PostWithdrawRequestHandler(w http.ResponseWriter, r *htt
 
 	//	производим вставку новой заявки на списание баллов в базу
 	err = app.Datasource.WithdrawRequest(withdrawIn.Order, withdrawIn.Sum, sessionID.Value)
+	
 	if errors.Is(err, storage.ErrInsufficientFundsToAccount) { //	если на счёте недостаточно средств
 		http.Error(w, err.Error(), http.StatusPaymentRequired) // отвечаем со статусом 402
 		return

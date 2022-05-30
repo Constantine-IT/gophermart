@@ -7,8 +7,7 @@ import (
 )
 
 //	Datasource - интерфейс источника данных сервера
-//	может реализовываться базой данных PostgreSQL (Database) или
-//  в тестовых целях - базой данных sqllite (SQLliteDB) в режиме "in memory"
+//	может реализовываться базой данных PostgreSQL (Database) или в тестовых целях - базой данных sqllite (SQLliteDB) в режиме "in memory"
 type Datasource interface {
 	UserRegister(userID, password string) (token string, err error)        //	регистрация пользователя
 	UserAuthorise(userID, password string) (token string, err error)       //	авторизация пользователя

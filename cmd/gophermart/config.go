@@ -2,12 +2,13 @@ package main
 
 import (
 	"flag"
-	h "github.com/Constantine-IT/gophermart/cmd/gophermart/internal/handlers"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/Constantine-IT/gophermart/cmd/gophermart/internal/handlers"
 )
 
 //	Config - структура хранения конфигурации нашего сервера
@@ -20,14 +21,16 @@ type Config struct {
 }
 
 //	 syncer - синхронизатор информации о заказах с внешней системой расчёта баллов
-func syncer(app *h.Application) {
+func syncer(app *handlers.Application) {
 	syncTicker := time.NewTicker(10 * time.Second) //	тикер для выдачи сигналов на синхронизацию
 	defer syncTicker.Stop()
 	for { //	вызываем обновление статусов для заказов, находящихся у нас в базе НЕ в финальных статусах
 		err := app.Datasource.UpdateOrdersStatus(app.AccrualAddress)
+
 		if err != nil {
-			app.ErrorLog.Println(err.Error())
+			app.ErrorLog.Println(err.Error()) //	все ошибки пишем в журнал
 		}
+
 		<-syncTicker.C //	повторяем обновление статусов на каждое срабатывание тикера
 	}
 }

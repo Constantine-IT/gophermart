@@ -18,6 +18,7 @@ func (app *Application) GetUserBalanceHandler(w http.ResponseWriter, r *http.Req
 
 	//	производим запрос баланса баллов данного пользователя
 	accrualSum, withdrawSum, err := app.Datasource.GetBalance(sessionID.Value)
+
 	if err != nil { //											при любых ошибках запроса баланса
 		http.Error(w, err.Error(), http.StatusInternalServerError) //	отвечаем со статусом 500
 		return
@@ -35,8 +36,8 @@ func (app *Application) GetUserBalanceHandler(w http.ResponseWriter, r *http.Req
 		Withdrawn: withdrawSum,
 	}
 
-	//	кодируем информацию в JSON
-	body, err := json.Marshal(userBalance)
+	body, err := json.Marshal(userBalance) //	кодируем информацию в JSON
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		app.ErrorLog.Println(err.Error())

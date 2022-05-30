@@ -12,7 +12,7 @@ import (
 type Application struct {
 	ErrorLog       *log.Logger        //	журнал ошибок
 	InfoLog        *log.Logger        //	журнал информационных сообщений
-	Datasource     storage.Datasource //	источник данных для хранения URL
+	Datasource     storage.Datasource //	источник данных для хранения информации о заказах
 	AccrualAddress string             //	адрес сервиса расчёта бонусных баллов
 }
 
@@ -47,8 +47,8 @@ func (app *Application) Routes() chi.Router {
 }
 
 /*
-Сводное HTTP API
-Накопительная система лояльности «Гофермарт» должна предоставлять следующие HTTP-хендлеры:
+Сводное HTTP API накопительной системы лояльности:
+
 POST /api/user/register — регистрация пользователя;
 POST /api/user/login — аутентификация пользователя;
 POST /api/user/orders — загрузка пользователем номера заказа для расчёта;

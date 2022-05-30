@@ -20,15 +20,16 @@ func NewDatasource(DatabaseDSN string) (strg Datasource, err error) {
 			return nil, err
 		}
 	} else { //	если задана переменная среды DATABASE_DSN, то работаем с БД - Postgres
-		//	открываем connect с базой данных PostgreSQL 10+
-		d.DB, err = sql.Open("pgx", DatabaseDSN)
+
+		d.DB, err = sql.Open("pgx", DatabaseDSN) //	открываем connect с базой данных PostgreSQL 10+
+
 		if err != nil { //	при ошибке открытия, прерываем работу конструктора
 			return nil, err
 		}
-		//	тестируем доступность базы данных
+
 		if err := d.DB.Ping(); err != nil { //	если база недоступна, прерываем работу конструктора
 			return nil, err
-		}
+		} //	тестируем доступность базы данных
 	}
 
 	//	если база данных доступна - создаём в ней структуры хранения

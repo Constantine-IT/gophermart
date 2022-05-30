@@ -10,10 +10,9 @@ import (
 	_ "github.com/jackc/pgx/stdlib"
 	_ "github.com/mattn/go-sqlite3"
 	//	"github.com/lib/pq"
-
 )
 
-//	Database - структура хранилища данных, обертывающая пул подключений к базе данных PostgreSQL
+//	Database - структура хранилища данных, обертывающая пул подключений к базе данных
 //	реализует интерфейс Datasource
 type Database struct {
 	DB *sql.DB

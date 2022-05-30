@@ -86,7 +86,18 @@ func TestHandlersResponse(t *testing.T) {
 			},
 		},
 		{
-			name:        "Test #6: get orders",
+			name:        "Test #6: get balance after withdraw",
+			request:     "/api/user/balance",
+			requestType: http.MethodGet,
+			body:        "",
+			want: want{
+				statusCode:  http.StatusOK,
+				contentType: "application/json",
+				body:        `{"current":89, "withdrawn":11}`,
+			},
+		},
+		{
+			name:        "Test #7: get orders",
 			request:     "/api/user/orders",
 			requestType: http.MethodGet,
 			body:        "",
