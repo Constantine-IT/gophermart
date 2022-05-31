@@ -9,7 +9,15 @@ import (
 )
 
 // NewDatasource - функция конструктор, инициализирующая хранилище
-func NewDatasource(DatabaseDSN string) (strg Datasource, err error) {
+func NewDatasource(DatabaseDSN, AccrualAddress string) (strg Datasource, err error) {
+
+	if AccrualAddress == "" {
+		Syncer = &MOKServer{}
+	} else {
+		Syncer = &BonusServer{
+			AccrualAddress: AccrualAddress,
+		}
+	}
 
 	var d Database
 

@@ -4,11 +4,6 @@ import (
 	"flag"
 	"log"
 	"os"
-	"os/signal"
-	"syscall"
-	"time"
-
-	"github.com/Constantine-IT/gophermart/cmd/gophermart/internal/handlers"
 )
 
 //	Config - структура хранения конфигурации нашего сервера
@@ -18,40 +13,6 @@ type Config struct {
 	AccrualAddress string      //	адрес доступа к системе расчёта начислений
 	InfoLog        *log.Logger //	logger для информационных сообщений
 	ErrorLog       *log.Logger //	logger для сообщений об ошибках
-}
-
-//	 syncer - синхронизатор информации о заказах с внешней системой расчёта баллов
-func syncer(app *handlers.Application) {
-	syncTicker := time.NewTicker(10 * time.Second) //	тикер для выдачи сигналов на синхронизацию
-	defer syncTicker.Stop()
-	for { //	вызываем обновление статусов для заказов, находящихся у нас в базе НЕ в финальных статусах
-		err := app.Datasource.UpdateOrdersStatus(app.AccrualAddress)
-
-		if err != nil {
-			app.ErrorLog.Println(err.Error()) //	все ошибки пишем в журнал
-		}
-
-		<-syncTicker.C //	повторяем обновление статусов на каждое срабатывание тикера
-	}
-}
-
-// termSignal - функция слежения за сигналами на останов сервера
-func termSignal() {
-	// сигнальный канал для отслеживания системных вызовов на остановку сервера
-	signalChanel := make(chan os.Signal, 1)
-	signal.Notify(signalChanel,
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGQUIT)
-
-	//	запускаем слежение за каналом
-	for {
-		s := <-signalChanel
-		if s == syscall.SIGINT || s == syscall.SIGTERM || s == syscall.SIGQUIT {
-			log.Println("SERVER Gophermart SHUTDOWN (code 0)")
-			os.Exit(0) //	при получении сигнала, останавливаем сервер
-		}
-	}
 }
 
 //	newConfig - функция-конфигуратор приложения через считывание флагов и переменных окружения

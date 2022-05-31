@@ -10,10 +10,9 @@ import (
 )
 
 type Application struct {
-	ErrorLog       *log.Logger        //	журнал ошибок
-	InfoLog        *log.Logger        //	журнал информационных сообщений
-	Datasource     storage.Datasource //	источник данных для хранения информации о заказах
-	AccrualAddress string             //	адрес сервиса расчёта бонусных баллов
+	ErrorLog   *log.Logger        //	журнал ошибок
+	InfoLog    *log.Logger        //	журнал информационных сообщений
+	Datasource storage.Datasource //	источник данных для хранения информации о заказах
 }
 
 func (app *Application) Routes() chi.Router {

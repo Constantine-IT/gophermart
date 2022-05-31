@@ -17,8 +17,17 @@ type Datasource interface {
 	OrderInsert(order string, userID string) error                         //	запрос от пользователя на регистрацию нового заказа
 	WithdrawRequest(order string, sum float32, userID string) error        //	запрос пользователя на списание баллов
 	Close()                                                                //	закрытие источника данных
-	UpdateOrdersStatus(AccrualAddress string) error                        //	синхронизация статуса заказов с внешним сервисом начисления баллов
+	UpdateOrdersStatus() error                                             //	синхронизация статуса заказов с внешним сервисом начисления баллов
 }
+
+//	Synchronizer - интерфейс сервиса для начисления бонусных баллов
+//	реализуется либо подключением к реальному сервису - BonusServer, либо к его эмулятору - MOKServer
+type Synchronizer interface {
+	SyncOrderStatus(orders []Order) error //	синхронизация статусов заказов и начислений
+}
+
+//	рабочий экземпляр сервиса начислений
+var Syncer Synchronizer
 
 // newSessionID - функция генерирует идентификатор для сессии пользователя
 func newSessionID() string {

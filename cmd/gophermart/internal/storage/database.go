@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	_ "github.com/jackc/pgx/stdlib"
@@ -131,7 +132,7 @@ func (d *Database) GetOrders(sessionID string) ([]Order, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	//	перебираем все строки выборки, добавляя записи withdraw в исходящий срез withdrawals
+	//	перебираем все строки выборки, добавляя записи order в исходящий срез orders
 	for rows.Next() {
 		err := rows.Scan(&orderNum, &status, &accrual, &processed)
 		if err != nil {
@@ -153,15 +154,23 @@ func (d *Database) GetBalance(sessionID string) (accrualSum, withdrawSum float32
 	// выбираем заказы пользователя в статусе PROCESSED и считаем по ним общую сумму начислений
 	stmt := `select SUM("accrual") from "orders", "users" where "orders"."userid" = "users"."userid" and "session_id" = $1 and "status" = $2 group by "orders"."userid"`
 	err = d.DB.QueryRow(stmt, sessionID, "PROCESSED").Scan(&accrualSum)
-	if errors.Is(err, sql.ErrNoRows) {
-		accrualSum = 0
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			accrualSum = 0
+		} else {
+			return 0, 0, err
+		}
 	}
 
 	// выбираем все списания пользователя за всё время
 	stmt = `select SUM("sum") from "withdrawals", "users" where "withdrawals"."userid" = "users"."userid" and "session_id" = $1 group by "withdrawals"."userid"`
 	err = d.DB.QueryRow(stmt, sessionID).Scan(&withdrawSum)
-	if errors.Is(err, sql.ErrNoRows) {
-		withdrawSum = 0
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			withdrawSum = 0
+		} else {
+			return 0, 0, err
+		}
 	}
 
 	return accrualSum - withdrawSum, withdrawSum, nil
@@ -281,4 +290,66 @@ func (d *Database) Close() {
 	//	при остановке сервера connect к базе данных
 	d.DB.Close()
 	time.Sleep(3 * time.Second)
+}
+
+//	UpdateOrdersStatus - метод синхронизации статусов заказов и начисленных баллов с внешним сервисом расчёта бонусных баллов
+func (d *Database) UpdateOrdersStatus() error {
+
+	//	выбираем из базы заказы, находящиеся в НЕ финальных статусах - NEW и PROCESSING
+	stmt := `select "order", "uploaded_at" from "orders" where "orders"."status" = 'NEW' or "orders"."status" = 'PROCESSING'`
+
+	rows, err := d.DB.Query(stmt) //	готовим и компилируем SQL-statement
+	if err != nil || rows.Err() != nil {
+		return err
+	}
+	defer rows.Close()
+
+	var orderNum, uploadTime string
+	orders := make([]Order, 0)
+
+	for rows.Next() { //	перебираем все строки выборки
+		err := rows.Scan(&orderNum, &uploadTime)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil
+			}
+			return err
+		}
+		//	и формируем из них список orders для синхронизации с системой начисления баллов
+		orders = append(orders, Order{Number: orderNum, Accrual: 0, Status: "PROCESSING", UploadedAt: uploadTime})
+		//	до синхронизации переводим все новые заказы в статус PROCESSING, с суммой начисленных баллов = 0
+	}
+
+	//	если заказов для синхронизации не нашлось - то завершаем на этом процесс синхронизации
+	if len(orders) == 0 { //	если заказов на начисление баллов не было
+		return nil
+	}
+
+	//	если заказы нашлись, то синхронизуем их статусы и начисления с сервером начисления бонусных баллов
+	err = Syncer.SyncOrderStatus(orders)
+	if err != nil {
+		return err
+	}
+
+	//	теперь в списке orders лежит обновленная информация по заказам на начисление баллов - обновим нашу базу
+	tx, err := d.DB.Begin() //	начинаем транзакцию
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback() //	при ошибке выполнения - откатываем транзакцию
+
+	//	готовим SQL-statement для обновления в базе информации по заказам
+	stmtInsert, err := tx.Prepare(`update "orders" set "status" = $1, "accrual" = $2, "uploaded_at" = $3 where "order" = $4`)
+	if err != nil {
+		return err
+	}
+	defer stmtInsert.Close()
+
+	for i := range orders { //	 запускаем обновление для каждого элемента списка на исполнение
+		if _, err := stmtInsert.Exec(orders[i].Status, orders[i].Accrual, orders[i].UploadedAt, orders[i].Number); err != nil {
+			log.Println(err.Error()) //	если при вставке произошла ошибка, то заносим её в журнал
+		}
+	}
+
+	return tx.Commit() //	фиксируем транзакцию, и результат фиксации возвращаем в вызывающую функцию
 }

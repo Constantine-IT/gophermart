@@ -111,13 +111,12 @@ func TestHandlersResponse(t *testing.T) {
 
 	//	для тестов используется виртуальная база данных SQLlite в режиме "in memory"
 	//	таблицы в ней создаются, как в настоящей базе, но изначально они пустые
-	datasource, _ := storage.NewDatasource("")
+	datasource, _ := storage.NewDatasource("", "")
 
 	app := &Application{
-		ErrorLog:       log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile),
-		InfoLog:        log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime),
-		AccrualAddress: "", //	сервис для синхронизации заменяем заглушкой, переводящей все заказы в статус PROCESSED
-		Datasource:     datasource,
+		ErrorLog:   log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile),
+		InfoLog:    log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime),
+		Datasource: datasource,
 	}
 
 	for _, tt := range tests {
@@ -147,7 +146,7 @@ func testSimpleRequest(t *testing.T, ts *httptest.Server, method, path string, b
 	//	для тестовой симуляции вычислим sessionID для пользователя с тестовым login/password
 	sessionID, _ := datasource.UserAuthorise("test1", "test1_password")
 	//	а также обновим статусы всех заказов в PROCESSED, с начислением 100 баллов
-	datasource.UpdateOrdersStatus("")
+	datasource.UpdateOrdersStatus()
 	//	а ещё зададим cookie с названием sessionid и значением равным вычисленному sessionID
 	req.AddCookie(&http.Cookie{
 		Name: "sessionid", Value: sessionID,
